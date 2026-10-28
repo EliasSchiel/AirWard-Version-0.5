@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>AirWard</title>
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="estilos.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
+  <script src="vendor/mqtt.min.js" defer></script>
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Ir al contenido</a>
+
+  <header class="barra">
+    <div class="barra-interior">
+      <div class="marca">
+        <span class="marca-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9.6 4.6A2 2 0 1 1 11 8H2m10.6 11.4A2 2 0 1 0 14 16H2m15.7-8.3A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        </span>
+        <div>
+          <p class="marca-nombre">AirWard</p>
+          <p class="marca-sub">Monitoreo de calidad del aire</p>
+        </div>
+      </div>
+      <div class="barra-acciones">
+        <p class="pastilla" id="conexion" data-estado="conectando" role="status">
+          <span class="punto" aria-hidden="true"></span>
+          <span id="conexion-texto">Conectando…</span>
+        </p>
+        <button type="button" class="boton" id="boton-demo" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+          Modo demo
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <noscript><p class="contenedor aviso">Esta página necesita JavaScript para recibir los datos en vivo.</p></noscript>
+
+  <main id="contenido" class="contenedor">
+    <h1 class="solo-lectores">AirWard: calidad del aire en vivo</h1>
+
+    <p class="aviso aviso-demo" id="aviso-demo" hidden>
+      <strong>Modo demo:</strong> los datos se simulan en este navegador; no vienen de los sensores.
+    </p>
+
+    <section class="resumen" id="resumen" data-nivel="neutro" aria-labelledby="resumen-titulo">
+      <span class="resumen-indicador" aria-hidden="true"></span>
+      <div class="resumen-texto">
+        <h2 class="resumen-etiqueta" id="resumen-titulo">Calidad del aire</h2>
+        <p class="resumen-estado" id="resumen-estado">Esperando datos</p>
+        <p class="resumen-detalle" id="resumen-detalle">Se calcula con el CO₂ que mide el MH-Z19.</p>
+      </div>
+      <dl class="resumen-datos">
+        <div>
+          <dt>Nodos en línea</dt>
+          <dd id="resumen-nodos">0 de 3</dd>
+        </div>
+        <div>
+          <dt>Última lectura</dt>
+          <dd id="resumen-ultima">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="titulo-lecturas">
+      <h2 id="titulo-lecturas" class="titulo-seccion">Lecturas</h2>
+      <div class="tarjetas">
+        <article class="tarjeta" data-sensor="temp" data-nivel="neutro">
+          <div class="tarjeta-cabecera">
+            <span class="tarjeta-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M14 14.8V3.5a2.5 2.5 0 0 0-5 0v11.3a4.5 4.5 0 1 0 5 0z"/></svg>
+            </span>
+            <h3>Temperatura</h3>
+            <span class="chip">Esperando datos</span>
+          </div>
+          <p class="lectura"><span class="valor">---</span> <span class="unidad">°C</span></p>
+          <svg class="grafico" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="relleno-temp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+            <path class="area" fill="url(#relleno-temp)" d=""/>
+            <polyline class="linea" points=""/>
+          </svg>
+          <p class="tarjeta-pie"><span>Principal · AHT10</span><span class="rango"></span></p>
+        </article>
+
+        <article class="tarjeta" data-sensor="humedad" data-nivel="neutro">
+          <div class="tarjeta-cabecera">
+            <span class="tarjeta-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 2.7l5.7 5.6a8 8 0 1 1-11.4 0z"/></svg>
+            </span>
+            <h3>Humedad</h3>
+            <span class="chip">Esperando datos</span>
+          </div>
+          <p class="lectura"><span class="valor">---</span> <span class="unidad">%</span></p>
+          <svg class="grafico" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="relleno-humedad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+            <path class="area" fill="url(#relleno-humedad)" d=""/>
+            <polyline class="linea" points=""/>
+          </svg>
+          <p class="tarjeta-pie"><span>Principal · AHT10</span><span class="rango"></span></p>
+        </article>
+
+        <article class="tarjeta" data-sensor="co2" data-nivel="neutro">
+          <div class="tarjeta-cabecera">
+            <span class="tarjeta-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z"/></svg>
+            </span>
+            <h3>CO₂</h3>
+            <span class="chip">Esperando datos</span>
+          </div>
+          <p class="lectura"><span class="valor">---</span> <span class="unidad">ppm</span></p>
+          <div class="escala" aria-hidden="true">
+            <div class="escala-barra"><span class="escala-marca"></span></div>
+            <div class="escala-numeros"><span>400</span><span>800</span><span>1200</span><span>2000</span></div>
+          </div>
+          <svg class="grafico" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="relleno-co2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+            <path class="area" fill="url(#relleno-co2)" d=""/>
+            <polyline class="linea" points=""/>
+          </svg>
+          <p class="tarjeta-pie"><span>Nodo MH-Z19</span><span class="rango"></span></p>
+        </article>
+
+        <article class="tarjeta" data-sensor="co" data-nivel="neutro">
+          <div class="tarjeta-cabecera">
+            <span class="tarjeta-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </span>
+            <h3>CO (MQ-7)</h3>
+            <span class="chip">Esperando datos</span>
+          </div>
+          <p class="lectura"><span class="valor">---</span> <span class="unidad">V</span></p>
+          <svg class="grafico" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="relleno-co" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+            <path class="area" fill="url(#relleno-co)" d=""/>
+            <polyline class="linea" points=""/>
+          </svg>
+          <p class="tarjeta-pie"><span>Nodo MQ-7 · voltaje crudo</span><span class="rango"></span></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel-mapa" aria-labelledby="titulo-mapa">
+      <div class="seccion-cabecera">
+        <div>
+          <h2 id="titulo-mapa" class="titulo-seccion">Mapa de la red</h2>
+          <p class="seccion-sub">Cada luz que viaja es un mensaje MQTT: del nodo al broker, y del broker a quienes están suscriptos.</p>
+        </div>
+        <div class="mapa-controles">
+          <button type="button" class="boton boton-chico" id="boton-rotar" aria-pressed="true" disabled>Rotación automática</button>
+          <button type="button" class="boton boton-chico" id="boton-centrar" disabled>Centrar vista</button>
+        </div>
+      </div>
+
+      <div class="mapa" id="mapa" role="img" aria-label="Mapa 3D de los nodos AirWard conectados al broker MQTT. El estado de cada nodo figura también en la lista de abajo.">
+        <p class="mapa-cargando" id="mapa-cargando">Cargando mapa 3D…</p>
+      </div>
+      <p class="nota">Arrastrá para girar · rueda o pellizco para acercar.</p>
+
+      <ul class="nodos" aria-label="Estado de los nodos">
+        <li data-nodo="principal">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="nodo-texto"><strong>Principal</strong><span>AHT10 + pantalla</span></span>
+          <span class="nodo-estado">Sin datos</span>
+        </li>
+        <li data-nodo="mhz19">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="nodo-texto"><strong>MH-Z19</strong><span>Sensor de CO₂</span></span>
+          <span class="nodo-estado">Sin datos</span>
+        </li>
+        <li data-nodo="mq7">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="nodo-texto"><strong>MQ-7</strong><span>Sensor de CO</span></span>
+          <span class="nodo-estado">Sin datos</span>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="pie contenedor">
+    <p>AirWard · Broker: <code id="pie-broker"></code></p>
+    <p>Los gráficos muestran los últimos 5 minutos desde que se abrió la página.</p>
+  </footer>
+</body>
+</html>

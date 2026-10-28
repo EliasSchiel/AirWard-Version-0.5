@@ -1,0 +1,19 @@
+# PlatformIO / VS Code
+.pio/
+.vscode/
+*.bak
+*.orig
+
+# Credenciales locales de cada nodo
+**/secrets.h
+
+# Datos generados por Mosquitto
+server/mosquitto/data/*
+server/mosquitto/log/*
+
+!server/mosquitto/data/.gitkeep
+!server/mosquitto/log/.gitkeep
+
+# Sistema
+.DS_Store
+Thumbs.db
