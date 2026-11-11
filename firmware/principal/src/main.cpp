@@ -158,6 +158,14 @@ void texto(int x, int y, uint8_t tam, uint16_t color, const char* s, int anchoCh
   tft.print(buf);
 }
 
+// Devuelve true si hay que redibujar un valor: el texto a mostrar es distinto del que ya
+// está en pantalla, o se fuerza (la página se acaba de dibujar). Guarda el nuevo texto en "anterior".
+bool cambioValor(char* anterior, size_t tam, const char* nuevo, bool forzar) {
+  if (!forzar && strcmp(anterior, nuevo) == 0) return false;
+  snprintf(anterior, tam, "%s", nuevo);
+  return true;
+}
+
 // Barra con zonas de color tenues + marcador blanco triangular encima.
 // frac = 0..1 posición del valor. Solo redibuja si el marcador se movió (slot = 0..3).
 int ultimoPx[4];
@@ -239,7 +247,9 @@ void valorResumen(int y, const char* s, uint16_t color) {
   texto(170, y, 3, color, s, 8);
 }
 
-void actualizarResumen() {
+void actualizarResumen(bool forzar) {
+  static char ultimoCO2[16] = "";
+  static char ultimoCO[16] = "";
   char txt[16];
   if (ahtOk) {
     snprintf(txt, sizeof(txt), "%.1f C", tempLocal);
@@ -250,17 +260,16 @@ void actualizarResumen() {
     valorResumen(56, "ERROR", ILI9341_RED);
     valorResumen(101, "ERROR", ILI9341_RED);
   }
-  if (datoVigente(co2)) {
-    snprintf(txt, sizeof(txt), "%.0f ppm", co2.valor);
-    valorResumen(146, txt, colorNivel(nivelCO2(co2.valor)));
-  } else {
-    valorResumen(146, "---", ILI9341_DARKGREY);
+  // CO2 y CO: solo se redibujan si cambió el valor mostrado
+  bool okC = datoVigente(co2);
+  if (okC) snprintf(txt, sizeof(txt), "%.0f ppm", co2.valor); else snprintf(txt, sizeof(txt), "---");
+  if (cambioValor(ultimoCO2, sizeof(ultimoCO2), txt, forzar)) {
+    valorResumen(146, txt, okC ? colorNivel(nivelCO2(co2.valor)) : ILI9341_DARKGREY);
   }
-  if (datoVigente(mq7)) {
-    snprintf(txt, sizeof(txt), "%.2f V", mq7.valor);
-    valorResumen(191, txt, ILI9341_WHITE);
-  } else {
-    valorResumen(191, "---", ILI9341_DARKGREY);
+  bool okM = datoVigente(mq7);
+  if (okM) snprintf(txt, sizeof(txt), "%.2f V", mq7.valor); else snprintf(txt, sizeof(txt), "---");
+  if (cambioValor(ultimoCO, sizeof(ultimoCO), txt, forzar)) {
+    valorResumen(191, txt, okM ? ILI9341_WHITE : ILI9341_DARKGREY);
   }
 }
 
@@ -280,11 +289,14 @@ void actualizarCO2(bool forzar) {
   char txt[32];
   static const float hasta[] = {0.25, 0.5, 1.0};
   static const uint16_t col[] = {COL_VERDE_T, COL_AMARILLO_T, COL_ROJO_T};
+  static char ultimo[16] = "";
   bool ok = datoVigente(co2);
-  Nivel n = ok ? nivelCO2(co2.valor) : N_NINGUNO;
-  uint16_t c = colorNivel(n);
 
   if (ok) snprintf(txt, sizeof(txt), "%.0f", co2.valor); else snprintf(txt, sizeof(txt), "---");
+  if (!cambioValor(ultimo, sizeof(ultimo), txt, forzar)) return;  // mismo valor: no se toca la pantalla
+
+  Nivel n = ok ? nivelCO2(co2.valor) : N_NINGUNO;
+  uint16_t c = colorNivel(n);
   texto(10, 50, 6, ok ? c : ILI9341_DARKGREY, txt, 4);
 
   tft.fillCircle(285, 78, 18, c);
@@ -320,8 +332,10 @@ void actualizarCO(bool forzar) {
   char txt[16];
   static const float hasta[] = {1.0};
   static const uint16_t col[] = {COL_CYAN_T};
+  static char ultimo[16] = "";
   bool ok = datoVigente(mq7);
   if (ok) snprintf(txt, sizeof(txt), "%.2f", mq7.valor); else snprintf(txt, sizeof(txt), "---");
+  if (!cambioValor(ultimo, sizeof(ultimo), txt, forzar)) return;  // mismo valor: no se toca la pantalla
   texto(10, 50, 6, ok ? ILI9341_WHITE : ILI9341_DARKGREY, txt, 5);
   tft.fillCircle(285, 78, 18, ok ? ILI9341_CYAN : ILI9341_DARKGREY);
   texto(10, 112, 2, ok ? ILI9341_CYAN : ILI9341_DARKGREY, ok ? "Sin calibrar" : "Sin datos del sensor", 25);
@@ -382,19 +396,26 @@ void filaBarras(int y, bool ok, Nivel n, const char* palabra, const char* valor,
   barraRelleno(10, y + 22, 300, 14, ok ? frac : 0, c);
 }
 
-void actualizarBarras() {
+void actualizarBarras(bool forzar) {
+  static char ultimoCO2[16] = "";
+  static char ultimoCO[16] = "";
   char v[16];
   snprintf(v, sizeof(v), "%.1f C", tempLocal);
   filaBarras(44, ahtOk, nivelTemp(tempLocal), (tempLocal < 18 ? "Fresco" : (tempLocal > 27 ? "Calor" : "Normal")), v, (tempLocal - 10.0) / 30.0, ILI9341_CYAN);
   snprintf(v, sizeof(v), "%.0f %%", humLocal);
   filaBarras(90, ahtOk, nivelHum(humLocal), (humLocal < 30 ? "Seco" : (humLocal > 65 ? "Humedo" : "Normal")), v, humLocal / 100.0, ILI9341_CYAN);
+  // CO2 y CO: solo se redibujan si cambió el valor mostrado
   bool okC = datoVigente(co2);
   Nivel nc = nivelCO2(co2.valor);
-  snprintf(v, sizeof(v), "%.0f ppm", co2.valor);
-  filaBarras(136, okC, nc, nc == N_BUENO ? "Buena" : (nc == N_MEDIO ? "Regular" : "Mala"), v, (co2.valor - 400.0) / 1600.0, ILI9341_CYAN);
+  if (okC) snprintf(v, sizeof(v), "%.0f ppm", co2.valor); else snprintf(v, sizeof(v), "---");
+  if (cambioValor(ultimoCO2, sizeof(ultimoCO2), v, forzar)) {
+    filaBarras(136, okC, nc, nc == N_BUENO ? "Buena" : (nc == N_MEDIO ? "Regular" : "Mala"), v, (co2.valor - 400.0) / 1600.0, ILI9341_CYAN);
+  }
   bool okM = datoVigente(mq7);
-  snprintf(v, sizeof(v), "%.2f V", mq7.valor);
-  filaBarras(182, okM, N_NINGUNO, "Crudo", v, mq7.valor / 5.0, ILI9341_CYAN);
+  if (okM) snprintf(v, sizeof(v), "%.2f V", mq7.valor); else snprintf(v, sizeof(v), "---");
+  if (cambioValor(ultimoCO, sizeof(ultimoCO), v, forzar)) {
+    filaBarras(182, okM, N_NINGUNO, "Crudo", v, mq7.valor / 5.0, ILI9341_CYAN);
+  }
 }
 
 // ---------------------------------------------------------------
@@ -426,11 +447,11 @@ void cambiarPagina() {
 
 void actualizarPantalla(bool forzar) {
   switch (pagina) {
-    case P_RESUMEN:  actualizarResumen(); break;
+    case P_RESUMEN:  actualizarResumen(forzar); break;
     case P_CO2:      actualizarCO2(forzar); break;
     case P_CO:       actualizarCO(forzar); break;
     case P_AMBIENTE: actualizarAmbiente(forzar); break;
-    case P_BARRAS:   actualizarBarras(); break;
+    case P_BARRAS:   actualizarBarras(forzar); break;
   }
   mostrarEstado();
 }
