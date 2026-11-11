@@ -24,6 +24,31 @@ WiFiClient espClient;
 PubSubClient mqtt(espClient);
 unsigned long ultimoEnvio = 0;
 
+//LED_TEST
+#define PIN_LED_TEST              13
+#define CFG_LED_TEST              pinMode(PIN_LED_TEST, OUTPUT)
+#define PRENDER_LED_TEST          digitalWrite(PIN_LED_TEST, HIGH)
+#define APAGAR_LED_TEST           digitalWrite(PIN_LED_TEST, LOW)
+#define AJUSTAR_LED_TEST(x)       digitalWrite(PIN_LED_TEST, x) 
+
+
+void LedTest ()
+  {
+  static unsigned long millis_ant = 0;
+  static bool blink = 0;
+  static unsigned int tiempo_destello=1000;
+
+  if (millis() - millis_ant < tiempo_destello) return;
+  millis_ant = millis();
+   
+  tiempo_destello = (motor == MOTOR_ABRE || motor == MOTOR_CIERRA) ? 100 : 1000;
+    
+  blink = !blink;
+  AJUSTAR_LED_TEST(blink);
+
+  }
+
+
 void conectarWiFi() {
   WiFi.disconnect(true, true);
   delay(200);
@@ -92,5 +117,6 @@ void loop() {
 
     bool ok = mqtt.publish(MQTT_TOPIC_DATOS, buffer, n);
     Serial.printf("Publicado en %s: %s -> %s\n", MQTT_TOPIC_DATOS, buffer, ok ? "OK" : "FALLÓ");
+    LedTest();
   }
 }
