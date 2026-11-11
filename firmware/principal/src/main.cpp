@@ -37,6 +37,29 @@ bool ahtOk = false;
 float tempLocal = 0;
 float humLocal = 0;
 
+//LED_TEST
+#define PIN_LED_TEST              13
+#define CFG_LED_TEST              pinMode(PIN_LED_TEST, OUTPUT)
+#define PRENDER_LED_TEST          digitalWrite(PIN_LED_TEST, HIGH)
+#define APAGAR_LED_TEST           digitalWrite(PIN_LED_TEST, LOW)
+#define AJUSTAR_LED_TEST(x)       digitalWrite(PIN_LED_TEST, x) 
+
+void LedTest ()
+  {
+  static unsigned long millis_ant = 0;
+  static bool blink = 0;
+  static unsigned int tiempo_destello=1000;
+
+  if (millis() - millis_ant < tiempo_destello) return;
+  millis_ant = millis();
+   
+  tiempo_destello = (motor == MOTOR_ABRE || motor == MOTOR_CIERRA) ? 100 : 1000;
+    
+  blink = !blink;
+  AJUSTAR_LED_TEST(blink);
+
+  }
+
 // --- Datos recibidos de los otros nodos ---
 struct DatoRemoto {
   float valor = 0;
@@ -463,6 +486,7 @@ void setup() {
 }
 
 void loop() {
+  LedTest();
   mantenerConexiones();
   if (mqtt.connected()) mqtt.loop();
 
