@@ -261,16 +261,14 @@ void actualizarResumen(bool forzar) {
     valorResumen(101, "ERROR", ILI9341_RED);
   }
   // CO2 y CO: solo se redibujan si cambió el valor mostrado
-  bool okC = datoVigente(co2);
-  if (okC) snprintf(txt, sizeof(txt), "%.0f ppm", co2.valor); else snprintf(txt, sizeof(txt), "---");
-  if (cambioValor(ultimoCO2, sizeof(ultimoCO2), txt, forzar)) {
-    valorResumen(146, txt, okC ? colorNivel(nivelCO2(co2.valor)) : ILI9341_DARKGREY);
-  }
-  bool okM = datoVigente(mq7);
-  if (okM) snprintf(txt, sizeof(txt), "%.2f V", mq7.valor); else snprintf(txt, sizeof(txt), "---");
-  if (cambioValor(ultimoCO, sizeof(ultimoCO), txt, forzar)) {
-    valorResumen(191, txt, okM ? ILI9341_WHITE : ILI9341_DARKGREY);
-  }
+  bool co2Vigente = datoVigente(co2);
+  co2Vigente ? snprintf(txt, sizeof(txt), "%.0f ppm", co2.valor) : snprintf(txt, sizeof(txt), "---");
+  if (cambioValor(ultimoCO2, sizeof(ultimoCO2), txt, forzar))
+    valorResumen(146, txt, co2Vigente ? colorNivel(nivelCO2(co2.valor)) : ILI9341_DARKGREY);
+  bool coVigente = datoVigente(mq7);
+  coVigente ? snprintf(txt, sizeof(txt), "%.2f V", mq7.valor) : snprintf(txt, sizeof(txt), "---");
+  if (cambioValor(ultimoCO, sizeof(ultimoCO), txt, forzar))
+    valorResumen(191, txt, coVigente ? ILI9341_WHITE : ILI9341_DARKGREY);
 }
 
 // --- P_CO2: detalle del MH-Z19 ---
@@ -407,15 +405,13 @@ void actualizarBarras(bool forzar) {
   // CO2 y CO: solo se redibujan si cambió el valor mostrado
   bool okC = datoVigente(co2);
   Nivel nc = nivelCO2(co2.valor);
-  if (okC) snprintf(v, sizeof(v), "%.0f ppm", co2.valor); else snprintf(v, sizeof(v), "---");
-  if (cambioValor(ultimoCO2, sizeof(ultimoCO2), v, forzar)) {
+  okC ? snprintf(v, sizeof(v), "%.0f ppm", co2.valor) : snprintf(v, sizeof(v), "---");
+  if (cambioValor(ultimoCO2, sizeof(ultimoCO2), v, forzar))
     filaBarras(136, okC, nc, nc == N_BUENO ? "Buena" : (nc == N_MEDIO ? "Regular" : "Mala"), v, (co2.valor - 400.0) / 1600.0, ILI9341_CYAN);
-  }
   bool okM = datoVigente(mq7);
-  if (okM) snprintf(v, sizeof(v), "%.2f V", mq7.valor); else snprintf(v, sizeof(v), "---");
-  if (cambioValor(ultimoCO, sizeof(ultimoCO), v, forzar)) {
+  okM ? snprintf(v, sizeof(v), "%.2f V", mq7.valor) : snprintf(v, sizeof(v), "---");
+  if (cambioValor(ultimoCO, sizeof(ultimoCO), v, forzar))
     filaBarras(182, okM, N_NINGUNO, "Crudo", v, mq7.valor / 5.0, ILI9341_CYAN);
-  }
 }
 
 // ---------------------------------------------------------------
