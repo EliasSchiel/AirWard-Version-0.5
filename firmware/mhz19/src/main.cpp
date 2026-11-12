@@ -44,7 +44,7 @@ void LedTest ()
   if (millis() - millis_ant < tiempo_destello) return;
   millis_ant = millis();
    
-  tiempo_destello = (motor == MOTOR_ABRE || motor == MOTOR_CIERRA) ? 100 : 1000;
+
     
   blink = !blink;
   AJUSTAR_LED_TEST(blink);
