@@ -263,6 +263,18 @@ void valorResumen(int y, const char* s, uint16_t color) {
 
 void actualizarResumen() {
   char txt[16];
+  static float tempAnterior = -1, humAnterior = -1, co2Anterior = -1, coAnterior = -1; //Verificamos que los datos sean nuevos, para
+                                                                                      // eso lo agrego en todas las funciones
+  float tempActual = ahtOk ? tempLocal : -1;               // -1 = sin datos
+  float humActual  = ahtOk ? humLocal : -1;
+  float co2Actual  = datoVigente(co2) ? co2.valor : -1;
+  float coActual   = datoVigente(mq7) ? mq7.valor : -1;
+  if (!forzar && tempActual == tempAnterior && humActual == humAnterior &&
+      co2Actual == co2Anterior && coActual == coAnterior) return;  // nada cambió: no se redibuja
+  tempAnterior = tempActual;
+  humAnterior = humActual;
+  co2Anterior = co2Actual;
+  coAnterior = coActual;
   if (ahtOk) {
     snprintf(txt, sizeof(txt), "%.1f C", tempLocal);
     valorResumen(56, txt, ILI9341_WHITE);
@@ -379,6 +391,12 @@ void actualizarAmbiente(bool forzar) {
   static const uint16_t colT[] = {COL_AMARILLO_T, COL_VERDE_T, COL_AMARILLO_T};
   static const float hastaH[] = {0.30, 0.65, 1.0};
   static const uint16_t colH[] = {COL_AMARILLO_T, COL_VERDE_T, COL_AMARILLO_T};
+  static float tempAnterior = -1, humAnterior = -1; 
+  float tempActual = ahtOk ? tempLocal : -1;   // -1 = sin datos
+  float humActual  = ahtOk ? humLocal : -1;
+  if (!forzar && tempActual == tempAnterior && humActual == humAnterior) return;  // mismo valor: no se redibuja
+  tempAnterior = tempActual;
+  humAnterior = humActual;
 
   if (!ahtOk) {
     texto(10, 56, 4, ILI9341_RED, "ERROR", 8);
@@ -414,6 +432,17 @@ void filaBarras(int y, bool ok, Nivel n, const char* palabra, const char* valor,
 
 void actualizarBarras() {
   char v[16];
+  static float tempAnterior = -1, humAnterior = -1, co2Anterior = -1, coAnterior = -1;
+  float tempActual = ahtOk ? tempLocal : -1;               // -1 = sin datos
+  float humActual  = ahtOk ? humLocal : -1;
+  float co2Actual  = datoVigente(co2) ? co2.valor : -1;
+  float coActual   = datoVigente(mq7) ? mq7.valor : -1;
+  if (!forzar && tempActual == tempAnterior && humActual == humAnterior &&
+      co2Actual == co2Anterior && coActual == coAnterior) return;  // nada cambió: no se redibuja
+  tempAnterior = tempActual;
+  humAnterior = humActual;
+  co2Anterior = co2Actual;
+  coAnterior = coActual;
   snprintf(v, sizeof(v), "%.1f C", tempLocal);
   filaBarras(44, ahtOk, nivelTemp(tempLocal), (tempLocal < 18 ? "Fresco" : (tempLocal > 27 ? "Calor" : "Normal")), v, (tempLocal - 10.0) / 30.0, ILI9341_CYAN);
   snprintf(v, sizeof(v), "%.0f %%", humLocal);
@@ -456,11 +485,11 @@ void cambiarPagina() {
 
 void actualizarPantalla(bool forzar) {
   switch (pagina) {
-    case P_RESUMEN:  actualizarResumen(); break;
+    case P_RESUMEN:  actualizarResumen(forzar); break;
     case P_CO2:      actualizarCO2(forzar); break;
     case P_CO:       actualizarCO(forzar); break;
     case P_AMBIENTE: actualizarAmbiente(forzar); break;
-    case P_BARRAS:   actualizarBarras(); break;
+    case P_BARRAS:   actualizarBarras(forzar); break;
   }
   mostrarEstado();
 }
