@@ -25,27 +25,31 @@ PubSubClient mqtt(espClient);
 unsigned long ultimoEnvio = 0;
 
 //LED_TEST
-#define PIN_LED_TEST              13
+#define PIN_LED_TEST              2       //en este ESP32 es el pin 2 el que tiene el LED integrado
 #define CFG_LED_TEST              pinMode(PIN_LED_TEST, OUTPUT)
 #define PRENDER_LED_TEST          digitalWrite(PIN_LED_TEST, HIGH)
 #define APAGAR_LED_TEST           digitalWrite(PIN_LED_TEST, LOW)
 #define AJUSTAR_LED_TEST(x)       digitalWrite(PIN_LED_TEST, x) 
 
+// Constantes para el destello del LED
+const unsigned int TIEMPO_DESTELLO_ON  = 50;   
+const unsigned int TIEMPO_DESTELLO_OFF = 2000;  
 
-void LedTest ()
-  {
+void LedTest() {
   static unsigned long millis_ant = 0;
-  static bool blink = 0;
-  static unsigned int tiempo_destello=1000;
+  static bool estadoLed = false;
+  static unsigned int intervaloActual = TIEMPO_DESTELLO_OFF; 
 
-  if (millis() - millis_ant < tiempo_destello) return;
+  
+  if (millis() - millis_ant < intervaloActual) return;
   millis_ant = millis();
 
-    
-  blink = !blink;
-  AJUSTAR_LED_TEST(blink);
+  
+  estadoLed = !estadoLed;
+  AJUSTAR_LED_TEST(estadoLed);
 
-  }
+  intervaloActual = estadoLed ? TIEMPO_DESTELLO_ON : TIEMPO_DESTELLO_OFF;
+}
 
 
 void conectarWiFi() {
