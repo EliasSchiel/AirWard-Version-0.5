@@ -267,7 +267,7 @@ void valorResumen(int y, const char* s, uint16_t color) {
   texto(170, y, 3, color, s, 8);
 }
 
-void actualizarResumen() {
+void actualizarResumen(bool forzar) {
   char txt[16];
   static float tempAnterior = -1, humAnterior = -1, co2Anterior = -1, coAnterior = -1; //Verificamos que los datos sean nuevos, para
                                                                                       // eso lo agrego en todas las funciones
@@ -436,7 +436,7 @@ void filaBarras(int y, bool ok, Nivel n, const char* palabra, const char* valor,
   barraRelleno(10, y + 22, 300, 14, ok ? frac : 0, c);
 }
 
-void actualizarBarras() {
+void actualizarBarras(bool forzar) {
   char v[16];
   static float tempAnterior = -1, humAnterior = -1, co2Anterior = -1, coAnterior = -1;
   float tempActual = ahtOk ? tempLocal : -1;               // -1 = sin datos
