@@ -175,6 +175,12 @@ bool datoVigente(const DatoRemoto& d) {
   return d.ultimo != 0 && (millis() - d.ultimo) < TIMEOUT_DATO_MS;
 }
 
+bool cambioDato(float& anterior, float actual, bool forzar) {
+  if (!forzar && actual == anterior) return false;
+  anterior = actual;
+  return true;
+}
+
 // Texto sobre fondo negro, relleno con espacios para tapar el valor anterior (sin parpadeo).
 void texto(int x, int y, uint8_t tam, uint16_t color, const char* s, int anchoChars = 0) {
   char buf[40];
@@ -269,38 +275,43 @@ void valorResumen(int y, const char* s, uint16_t color) {
 
 void actualizarResumen(bool forzar) {
   char txt[16];
-  static float tempAnterior = -1, humAnterior = -1, co2Anterior = -1, coAnterior = -1; //Verificamos que los datos sean nuevos, para
-                                                                                      // eso lo agrego en todas las funciones
+  static float tempAnterior = -1, humAnterior = -1, co2Anterior = -1, coAnterior = -1;
   float tempActual = ahtOk ? tempLocal : -1;               // -1 = sin datos
   float humActual  = ahtOk ? humLocal : -1;
   float co2Actual  = datoVigente(co2) ? co2.valor : -1;
   float coActual   = datoVigente(mq7) ? mq7.valor : -1;
-  if (!forzar && tempActual == tempAnterior && humActual == humAnterior &&
-      co2Actual == co2Anterior && coActual == coAnterior) return;  // nada cambió: no se redibuja
-  tempAnterior = tempActual;
-  humAnterior = humActual;
-  co2Anterior = co2Actual;
-  coAnterior = coActual;
-  if (ahtOk) {
-    snprintf(txt, sizeof(txt), "%.1f C", tempLocal);
-    valorResumen(56, txt, ILI9341_WHITE);
-    snprintf(txt, sizeof(txt), "%.0f %%", humLocal);
-    valorResumen(101, txt, ILI9341_WHITE);
-  } else {
-    valorResumen(56, "ERROR", ILI9341_RED);
-    valorResumen(101, "ERROR", ILI9341_RED);
+
+  if (cambioDato(tempAnterior, tempActual, forzar)) {
+    if (ahtOk) {
+      snprintf(txt, sizeof(txt), "%.1f C", tempLocal);
+      valorResumen(56, txt, ILI9341_WHITE);
+    } else {
+      valorResumen(56, "ERROR", ILI9341_RED);
+    }
   }
-  if (datoVigente(co2)) {
-    snprintf(txt, sizeof(txt), "%.0f ppm", co2.valor);
-    valorResumen(146, txt, colorNivel(nivelCO2(co2.valor)));
-  } else {
-    valorResumen(146, "---", ILI9341_DARKGREY);
+  if (cambioDato(humAnterior, humActual, forzar)) {
+    if (ahtOk) {
+      snprintf(txt, sizeof(txt), "%.0f %%", humLocal);
+      valorResumen(101, txt, ILI9341_WHITE);
+    } else {
+      valorResumen(101, "ERROR", ILI9341_RED);
+    }
   }
-  if (datoVigente(mq7)) {
-    snprintf(txt, sizeof(txt), "%.2f V", mq7.valor);
-    valorResumen(191, txt, ILI9341_WHITE);
-  } else {
-    valorResumen(191, "---", ILI9341_DARKGREY);
+  if (cambioDato(co2Anterior, co2Actual, forzar)) {
+    if (datoVigente(co2)) {
+      snprintf(txt, sizeof(txt), "%.0f ppm", co2.valor);
+      valorResumen(146, txt, colorNivel(nivelCO2(co2.valor)));
+    } else {
+      valorResumen(146, "---", ILI9341_DARKGREY);
+    }
+  }
+  if (cambioDato(coAnterior, coActual, forzar)) {
+    if (datoVigente(mq7)) {
+      snprintf(txt, sizeof(txt), "%.2f V", mq7.valor);
+      valorResumen(191, txt, ILI9341_WHITE);
+    } else {
+      valorResumen(191, "---", ILI9341_DARKGREY);
+    }
   }
 }
 
@@ -397,27 +408,31 @@ void actualizarAmbiente(bool forzar) {
   static const uint16_t colT[] = {COL_AMARILLO_T, COL_VERDE_T, COL_AMARILLO_T};
   static const float hastaH[] = {0.30, 0.65, 1.0};
   static const uint16_t colH[] = {COL_AMARILLO_T, COL_VERDE_T, COL_AMARILLO_T};
-  static float tempAnterior = -1, humAnterior = -1; 
+  static float tempAnterior = -1, humAnterior = -1;
   float tempActual = ahtOk ? tempLocal : -1;   // -1 = sin datos
   float humActual  = ahtOk ? humLocal : -1;
-  if (!forzar && tempActual == tempAnterior && humActual == humAnterior) return;  // mismo valor: no se redibuja
-  tempAnterior = tempActual;
-  humAnterior = humActual;
 
-  if (!ahtOk) {
-    texto(10, 56, 4, ILI9341_RED, "ERROR", 8);
-    texto(10, 146, 4, ILI9341_RED, "ERROR", 8);
-    return;
+  if (cambioDato(tempAnterior, tempActual, forzar)) {
+    if (!ahtOk) {
+      texto(10, 56, 4, ILI9341_RED, "ERROR", 8);
+    } else {
+      snprintf(txt, sizeof(txt), "%.1f", tempLocal);
+      texto(10, 56, 4, colorNivel(nivelTemp(tempLocal)), txt, 5);
+      texto(180, 64, 2, colorNivel(nivelTemp(tempLocal)), textoTemp(tempLocal), 11);
+      barraEscala(0, 10, 108, 300, 8, (tempLocal - 10.0) / 30.0, hastaT, colT, 3, forzar);
+    }
   }
-  snprintf(txt, sizeof(txt), "%.1f", tempLocal);
-  texto(10, 56, 4, colorNivel(nivelTemp(tempLocal)), txt, 5);
-  texto(180, 64, 2, colorNivel(nivelTemp(tempLocal)), textoTemp(tempLocal), 11);
-  barraEscala(0, 10, 108, 300, 8, (tempLocal - 10.0) / 30.0, hastaT, colT, 3, forzar);
 
-  snprintf(txt, sizeof(txt), "%.0f", humLocal);
-  texto(10, 146, 4, colorNivel(nivelHum(humLocal)), txt, 4);
-  texto(180, 154, 2, colorNivel(nivelHum(humLocal)), textoHum(humLocal), 11);
-  barraEscala(1, 10, 198, 300, 8, humLocal / 100.0, hastaH, colH, 3, forzar);
+  if (cambioDato(humAnterior, humActual, forzar)) {
+    if (!ahtOk) {
+      texto(10, 146, 4, ILI9341_RED, "ERROR", 8);
+    } else {
+      snprintf(txt, sizeof(txt), "%.0f", humLocal);
+      texto(10, 146, 4, colorNivel(nivelHum(humLocal)), txt, 4);
+      texto(180, 154, 2, colorNivel(nivelHum(humLocal)), textoHum(humLocal), 11);
+      barraEscala(1, 10, 198, 300, 8, humLocal / 100.0, hastaH, colH, 3, forzar);
+    }
+  }
 }
 
 // --- P_BARRAS: los 4 sensores de un vistazo ---
@@ -443,23 +458,26 @@ void actualizarBarras(bool forzar) {
   float humActual  = ahtOk ? humLocal : -1;
   float co2Actual  = datoVigente(co2) ? co2.valor : -1;
   float coActual   = datoVigente(mq7) ? mq7.valor : -1;
-  if (!forzar && tempActual == tempAnterior && humActual == humAnterior &&
-      co2Actual == co2Anterior && coActual == coAnterior) return;  // nada cambió: no se redibuja
-  tempAnterior = tempActual;
-  humAnterior = humActual;
-  co2Anterior = co2Actual;
-  coAnterior = coActual;
-  snprintf(v, sizeof(v), "%.1f C", tempLocal);
-  filaBarras(44, ahtOk, nivelTemp(tempLocal), (tempLocal < 18 ? "Fresco" : (tempLocal > 27 ? "Calor" : "Normal")), v, (tempLocal - 10.0) / 30.0, ILI9341_CYAN);
-  snprintf(v, sizeof(v), "%.0f %%", humLocal);
-  filaBarras(90, ahtOk, nivelHum(humLocal), (humLocal < 30 ? "Seco" : (humLocal > 65 ? "Humedo" : "Normal")), v, humLocal / 100.0, ILI9341_CYAN);
-  bool okC = datoVigente(co2);
-  Nivel nc = nivelCO2(co2.valor);
-  snprintf(v, sizeof(v), "%.0f ppm", co2.valor);
-  filaBarras(136, okC, nc, nc == N_BUENO ? "Buena" : (nc == N_MEDIO ? "Regular" : "Mala"), v, (co2.valor - 400.0) / 1600.0, ILI9341_CYAN);
-  bool okM = datoVigente(mq7);
-  snprintf(v, sizeof(v), "%.2f V", mq7.valor);
-  filaBarras(182, okM, N_NINGUNO, "Crudo", v, mq7.valor / 5.0, ILI9341_CYAN);
+
+  if (cambioDato(tempAnterior, tempActual, forzar)) {
+    snprintf(v, sizeof(v), "%.1f C", tempLocal);
+    filaBarras(44, ahtOk, nivelTemp(tempLocal), (tempLocal < 18 ? "Fresco" : (tempLocal > 27 ? "Calor" : "Normal")), v, (tempLocal - 10.0) / 30.0, ILI9341_CYAN);
+  }
+  if (cambioDato(humAnterior, humActual, forzar)) {
+    snprintf(v, sizeof(v), "%.0f %%", humLocal);
+    filaBarras(90, ahtOk, nivelHum(humLocal), (humLocal < 30 ? "Seco" : (humLocal > 65 ? "Humedo" : "Normal")), v, humLocal / 100.0, ILI9341_CYAN);
+  }
+  if (cambioDato(co2Anterior, co2Actual, forzar)) {
+    bool okC = datoVigente(co2);
+    Nivel nc = nivelCO2(co2.valor);
+    snprintf(v, sizeof(v), "%.0f ppm", co2.valor);
+    filaBarras(136, okC, nc, nc == N_BUENO ? "Buena" : (nc == N_MEDIO ? "Regular" : "Mala"), v, (co2.valor - 400.0) / 1600.0, ILI9341_CYAN);
+  }
+  if (cambioDato(coAnterior, coActual, forzar)) {
+    bool okM = datoVigente(mq7);
+    snprintf(v, sizeof(v), "%.2f V", mq7.valor);
+    filaBarras(182, okM, N_NINGUNO, "Crudo", v, mq7.valor / 5.0, ILI9341_CYAN);
+  }
 }
 
 // ---------------------------------------------------------------
